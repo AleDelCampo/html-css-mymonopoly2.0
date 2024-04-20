@@ -21,7 +21,7 @@ document.addEventListener("DOMContentLoaded", function () {
         { name: "Unitree", price: 350, rent: 175, owner: null, purchasable: true },
         { name: "Google", price: 350, rent: 200, owner: null, purchasable: true },
         { name: "Boston Dymanics", price: 370, rent: 185, owner: null, purchasable: true },
-        { name: "Parcheggio", owner: null, purchasable: true },
+        { name: "Parcheggio", owner: null, purchasable: false },
         { name: "Cry Engine", price: 400, rent: 200, owner: null, purchasable: true },
         { name: "Adobe: l'abbonamento è scaduto!!", price: 200, owner: null, purchasable: false },
         { name: "Unreal Engine", price: 430, rent: 215, owner: null, purchasable: true },
@@ -61,26 +61,88 @@ document.addEventListener("DOMContentLoaded", function () {
 
     let currentPlayerIndex = 0;
     
-    function playTurn() {
-        const dice1 = Math.floor(Math.random() * 6) + 1;
-        const dice2 = Math.floor(Math.random() * 6) + 1;
-        const total = dice1 + dice2;
-
-        document.getElementById("diceResult").innerText = "Giocatore " + (currentPlayerIndex + 1) + " ha fatto " + total;
-
-        const currentProperty = properties[currentPlayerPosition[currentPlayerIndex]];
-
-        if (currentProperty.purchasable) {
-            if (currentProperty.owner === null) {
-                if (confirm("Vuoi acquistare " + currentProperty.name + " per " + currentProperty.price + " monete?")) {
-                    addPropertyToPlayer(currentPlayerIndex, currentProperty.name);
-                    currentProperty.owner = currentPlayerIndex;
-                }
+    function checkWinner() {
+        const remainingPlayers = playerPieces.filter((_, index) => {
+            const playerWallet = document.getElementById("playerWallet_" + index);
+            const playerAmount = parseInt(playerWallet.textContent.slice(1));
+            return playerAmount > 0;
+        });
+    
+        if (remainingPlayers.length === 1) {
+            const winnerIndex = playerPieces.findIndex((_, index) => {
+                const playerWallet = document.getElementById("playerWallet_" + index);
+                const playerAmount = parseInt(playerWallet.textContent.slice(1));
+                return playerAmount > 0;
+            });
+    
+            const winnerName = "Giocatore " + (winnerIndex + 1);
+            if (confirm(winnerName + " ha vinto!! Vuoi iniziare una nuova partita??")) {
+                resetGame();
             }
         }
-
-        movePlayer(currentPlayerIndex, total);
-        nextTurn();
+    }
+    
+    function resetGame() {
+        for (let i = 0; i < playerPieces.length; i++) {
+            const playerWallet = document.getElementById("playerWallet_" + i);
+            playerWallet.textContent = "€600";
+        }
+    
+        currentPlayerPosition.fill(0);
+    
+        for (let i = 0; i < playerPieces.length; i++) {
+            const playerPropertiesDiv = document.getElementById("playerProperties_" + i);
+            playerPropertiesDiv.innerHTML = "";
+        }
+    
+        for (let i = 0; i < properties.length; i++) {
+            properties[i].owner = null;
+        }
+    
+        for (let i = 0; i < playerPieces.length; i++) {
+            movePiece(playerPieces[i], boardCoordinates[0].x, boardCoordinates[0].y);
+        }
+    }
+    
+    function playTurn() {
+        if (checkPlayerCanPlay(currentPlayerIndex)) {
+            const dice1 = Math.floor(Math.random() * 6) + 1;
+            const dice2 = Math.floor(Math.random() * 6) + 1;
+            const total = dice1 + dice2;
+    
+            document.getElementById("diceResult").innerText = "Giocatore " + (currentPlayerIndex + 1) + " ha fatto " + total;
+    
+            const currentProperty = properties[currentPlayerPosition[currentPlayerIndex]];
+    
+            if (currentProperty.purchasable) {
+                if (currentProperty.owner === null) {
+                    const currentPlayerWallet = document.getElementById("playerWallet_" + currentPlayerIndex);
+                    const currentWalletAmount = parseInt(currentPlayerWallet.textContent.slice(1));
+                    const propertyPrice = currentProperty.price;
+                    if (currentWalletAmount >= propertyPrice && propertyPrice > 0) {
+                        if (confirm("Vuoi acquistare " + currentProperty.name + " per " + propertyPrice + " monete?")) {
+                            currentPlayerWallet.textContent = "€" + (currentWalletAmount - propertyPrice);
+                            addPropertyToPlayer(currentPlayerIndex, currentProperty.name);
+                            currentProperty.owner = currentPlayerIndex;
+                        }
+                    } else {
+                        alert("Non hai abbastanza soldi per acquistare questa proprietà!!");
+                    }
+                }
+            }
+    
+            movePlayer(currentPlayerIndex, total);
+            checkWinner();
+            nextTurn();
+        } else {
+            nextTurn();
+        }
+    }
+    
+    function checkPlayerCanPlay(playerIndex) {
+        const playerWallet = document.getElementById("playerWallet_" + playerIndex);
+        const playerAmount = parseInt(playerWallet.textContent.slice(1));
+        return playerAmount > 0;
     }
 
     function nextTurn() {
@@ -90,26 +152,45 @@ document.addEventListener("DOMContentLoaded", function () {
     function movePlayer(playerIndex, steps) {
         let currentPosition = currentPlayerPosition[playerIndex];
         let remainingSteps = steps;
-
+    
         while (remainingSteps > 0) {
             currentPosition = (currentPosition + 1) % properties.length;
             remainingSteps--;
         }
-
+    
         currentPlayerPosition[playerIndex] = currentPosition;
-
+    
         const newPosition = boardCoordinates[currentPosition];
         const newX = newPosition.x;
         const newY = newPosition.y;
-
+    
         movePiece(playerPieces[playerIndex], newX, newY);
-
+    
         const currentProperty = properties[currentPosition];
         if (currentProperty.owner === null && currentProperty.purchasable) {
             if (confirm("Vuoi acquistare " + currentProperty.name + " per " + currentProperty.price + " monete?")) {
                 currentProperty.owner = playerIndex;
                 addPropertyToPlayer(playerIndex, currentProperty.name);
             }
+        } else if (currentProperty.name === "Adobe: l'abbonamento è scaduto!!") {
+            const payingPlayerWallet = document.getElementById("playerWallet_" + playerIndex);
+            const payingPlayerAmount = parseInt(payingPlayerWallet.textContent.slice(1));
+            
+            payingPlayerWallet.textContent = "€" + (payingPlayerAmount - 200);
+            
+            alert("Il giocatore " + (playerIndex + 1) + " perde €200.");
+        } else if (currentProperty.owner !== null && currentProperty.owner !== playerIndex) {
+            const propertyPrice = currentProperty.price;
+            const halfPrice = Math.floor(propertyPrice / 2);
+            const payingPlayerWallet = document.getElementById("playerWallet_" + playerIndex);
+            const receivingPlayerWallet = document.getElementById("playerWallet_" + currentProperty.owner);
+            const payingPlayerAmount = parseInt(payingPlayerWallet.textContent.slice(1));
+            const receivingPlayerAmount = parseInt(receivingPlayerWallet.textContent.slice(1));
+            
+            payingPlayerWallet.textContent = "€" + (payingPlayerAmount - halfPrice);
+            receivingPlayerWallet.textContent = "€" + (receivingPlayerAmount + halfPrice);
+            
+            alert("Il giocatore " + (playerIndex + 1) + " paga €" + halfPrice + " al giocatore " + (currentProperty.owner + 1) + ".");
         }
     }
 
@@ -120,10 +201,19 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function addPropertyToPlayer(playerIndex, propertyName) {
-        const playerPropertiesDiv = document.getElementById("playerProperties_" + playerIndex);
-        const propertyElement = document.createElement("div");
-        propertyElement.textContent = propertyName;
-        playerPropertiesDiv.appendChild(propertyElement);
-        properties.find(property => property.name === propertyName).owner = playerPieces[playerIndex];
+        const currentPlayerWallet = document.getElementById("playerWallet_" + playerIndex);
+        const currentWalletAmount = parseInt(currentPlayerWallet.textContent.slice(1));
+        const propertyPrice = properties.find(property => property.name === propertyName).price;
+    
+        if (currentWalletAmount >= propertyPrice) {
+            currentPlayerWallet.textContent = "€" + (currentWalletAmount - propertyPrice);
+    
+            const playerPropertiesDiv = document.getElementById("playerProperties_" + playerIndex);
+            const propertyElement = document.createElement("div");
+            propertyElement.textContent = propertyName;
+            playerPropertiesDiv.appendChild(propertyElement);
+        } else {
+            alert("Non hai abbastanza soldi per acquistare questa proprietà!!");
+        }
     }
 });
