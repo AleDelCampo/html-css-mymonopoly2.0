@@ -54,8 +54,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
     const currentPlayerPosition = new Array(playerPieces.length).fill(0);
 
-    const startButton = document.getElementById("startButton");
-    startButton.addEventListener("click", function () {
+    const pullDice = document.getElementById("pullDice");
+    pullDice.addEventListener("click", function () {
         playTurn();
     });
 

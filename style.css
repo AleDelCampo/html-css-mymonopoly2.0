@@ -11,6 +11,52 @@ html {
     overflow-y: hidden;
 }
 
+.first-wallet,
+.second-wallet,
+.third-wallet,
+.fourth-wallet {
+  border: 2px solid #000;
+  border-radius: 10px;
+  padding: 20px;
+  margin-bottom: 20px;
+  width: 200px;
+  text-align: center;
+  background-color: #f0f0f0;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.first-wallet h2,
+.second-wallet h2,
+.third-wallet h2,
+.fourth-wallet h2 {
+  font-size: 18px;
+  margin-top: 0;
+}
+
+#playerWallet_0,
+#playerWallet_1,
+#playerWallet_2,
+#playerWallet_3 {
+  font-size: 24px;
+  font-weight: bold;
+  color: #008000;
+}
+
+#playerProperties_0,
+#playerProperties_1,
+#playerProperties_2,
+#playerProperties_3 {
+  margin-top: 10px;
+  color: #333;
+}
+
+#playerSetupForm {
+    position: absolute;
+    top: 20px;
+    left: 120px;
+}
+
 .bg-color {
     background-image: url(./img/Tappeto.jpg);
     background: rgb(54,99,40);
@@ -555,7 +601,7 @@ body {
    left: 8px;
 }
 
-#startButton {
+#pullDice {
     background-color: #0171c1;
     border-style: none;
     border-radius: 8px;
